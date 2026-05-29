@@ -1070,203 +1070,210 @@ function _doPDF(inputData) {
         
         const W = 210;
         const H = 297;
-        const margin = 15;
+        const margin = 20;
         const contentWidth = W - (margin * 2);
         let y = margin;
 
         const items = Array.isArray(inputData) ? inputData : [inputData];
 
-        // Cores
-        const primary = [26, 86, 219];
-        const textDark = [15, 17, 23];
-        const textGray = [107, 114, 128];
-        const border = [226, 229, 235];
-        const bgLight = [249, 250, 251];
+        const colors = {
+            primary: [30, 58, 138],
+            secondary: [71, 85, 105],
+            text: [15, 23, 42],
+            lightText: [100, 116, 139],
+            border: [226, 232, 240],
+            bg: [248, 250, 252],
+            success: [21, 128, 61],
+            warning: [180, 83, 9],
+            danger: [185, 28, 28]
+        };
 
-        const checkPage = (h) => {
-            if (y + h > H - margin - 15) {
+        const checkNewPage = (neededHeight) => {
+            if (y + neededHeight > H - margin - 15) {
                 doc.addPage();
-                y = margin;
-                drawHeader();
+                y = margin + 10;
+                doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+                doc.rect(0, 0, 2, H, 'F');
                 return true;
             }
             return false;
         };
 
-        const drawHeader = () => {
-            doc.setFillColor(primary[0], primary[1], primary[2]);
-            doc.rect(0, 0, W, 2, 'F');
-            y = margin + 2;
-        };
-
-        items.forEach((av, index) => {
-            if (index > 0) {
+        items.forEach((av, idx) => {
+            if (idx > 0) {
                 doc.addPage();
                 y = margin;
             }
-            drawHeader();
 
-            // Título e Metadados
+            doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+            doc.rect(0, 0, 2, H, 'F');
+
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(22);
-            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-            doc.text('Relatório de Avaliação Individual', margin, y + 8);
-            y += 18;
+            doc.setFontSize(24);
+            doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+            doc.text('AVALIAÇÃO DE DESEMPENHO', margin, y + 10);
+            y += 20;
+
+            doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+            doc.roundedRect(margin, y, contentWidth, 35, 2, 2, 'F');
+            doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+            doc.roundedRect(margin, y, contentWidth, 35, 2, 2, 'S');
+
+            doc.setFontSize(10);
+            doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
+            doc.text('COLABORADOR', margin + 5, y + 8);
+            doc.text('SETOR', margin + contentWidth / 2 + 5, y + 8);
+            doc.text('FORMADOR', margin + 5, y + 22);
+            doc.text('DATA DA AVALIAÇÃO', margin + contentWidth / 2 + 5, y + 22);
 
             doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-            
-            const metaY = y;
-            doc.text(`Colaborador: ${av.nome || '—'}`, margin, metaY);
-            doc.text(`Setor: ${av.setor || '—'}`, margin + (contentWidth / 2), metaY);
-            y += 8;
-            doc.text(`Formador: ${av.formador || '—'}`, margin, y);
-            doc.text(`Data: ${av.data ? new Date(av.data+'T12:00').toLocaleDateString('pt-BR') : '—'}`, margin + (contentWidth / 2), y);
-            y += 12;
+            doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+            doc.setFont('helvetica', 'bold');
+            doc.text(String(av.nome || 'N/A').toUpperCase(), margin + 5, y + 14);
+            doc.text(String(av.setor || 'N/A').toUpperCase(), margin + contentWidth / 2 + 5, y + 14);
+            doc.text(String(av.formador || 'N/A').toUpperCase(), margin + 5, y + 28);
+            const dataFmt = av.data ? new Date(av.data + 'T12:00').toLocaleDateString('pt-BR') : 'N/A';
+            doc.text(dataFmt, margin + contentWidth / 2 + 5, y + 28);
+            y += 45;
 
-            // Linha divisória
-            doc.setDrawColor(border[0], border[1], border[2]);
-            doc.line(margin, y, W - margin, y);
-            y += 10;
-
-            // Seção de Médias
             const cAvg = calcAvg(av.scores, COMP, 'comp');
             const pAvg = calcAvg(av.scores, PERF, 'perf');
 
-            doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
-            doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
-            
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-            doc.text('MÉDIA COMPETÊNCIAS', margin + 10, y + 8);
-            doc.text('MÉDIA PERFORMANCE', margin + (contentWidth / 2) + 10, y + 8);
-            
-            doc.setFontSize(18);
-            doc.setTextColor(primary[0], primary[1], primary[2]);
-            doc.text(String(cAvg), margin + 10, y + 16);
-            doc.text(String(pAvg), margin + (contentWidth / 2) + 10, y + 16);
-            y += 28;
+            const drawScoreCircle = (label, score, x) => {
+                doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+                doc.setLineWidth(0.5);
+                doc.circle(x, y + 10, 15, 'FD');
+                doc.setFontSize(16);
+                doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+                doc.text(String(score), x, y + 12, { align: 'center' });
+                doc.setFontSize(9);
+                doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
+                doc.text(label, x, y + 30, { align: 'center' });
+            };
 
-            // Tabelas de Notas
-            const drawTable = (title, dataItems, prefix) => {
-                checkPage(20);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(13);
-                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            drawScoreCircle('MÉDIA COMPETÊNCIAS', cAvg, margin + contentWidth / 4);
+            drawScoreCircle('MÉDIA PERFORMANCE', pAvg, margin + (3 * contentWidth / 4));
+            y += 45;
+
+            const renderTable = (title, itemsList, prefix) => {
+                checkNewPage(25);
+                doc.setFontSize(14);
+                doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
                 doc.text(title, margin, y);
-                y += 8;
+                y += 5;
+                doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+                doc.setLineWidth(0.8);
+                doc.line(margin, y, margin + 20, y);
+                y += 10;
 
-                dataItems.forEach(item => {
-                    const score = av.scores[prefix + '_' + item.k] || '—';
+                itemsList.forEach((item, i) => {
+                    const score = av.scores[prefix + '_' + item.k] || 0;
                     const evidence = av.evid ? (av.evid[prefix + '_' + item.k] || '') : '';
-                    
-                    const evLines = evidence ? doc.splitTextToSize(evidence, contentWidth - 80) : [];
-                    const rowH = Math.max(12, (evLines.length * 6) + 6);
-                    
-                    checkPage(rowH);
-                    
-                    doc.setDrawColor(border[0], border[1], border[2]);
-                    doc.rect(margin, y, contentWidth, rowH);
-                    
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(10);
-                    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-                    doc.text(item.l, margin + 3, y + (rowH/2), {baseline: 'middle'});
-                    
-                    // Nota com cor
-                    if (score !== '—') {
-                        const sNum = parseInt(score);
-                        if (sNum >= 4) doc.setTextColor(13, 122, 95); // Verde
-                        else if (sNum === 3) doc.setTextColor(180, 83, 9); // Âmbar
-                        else doc.setTextColor(192, 57, 43); // Vermelho
+                    const evLines = evidence ? doc.splitTextToSize(evidence, contentWidth - 85) : [];
+                    const rowHeight = Math.max(15, (evLines.length * 5) + 8);
+
+                    checkNewPage(rowHeight);
+
+                    if (i % 2 === 0) {
+                        doc.setFillColor(252, 252, 253);
+                        doc.rect(margin, y, contentWidth, rowHeight, 'F');
                     }
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.text(String(score), margin + contentWidth - 10, y + (rowH/2), { align: 'right', baseline: 'middle' });
                     
+                    doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+                    doc.setLineWidth(0.1);
+                    doc.line(margin, y + rowHeight, margin + contentWidth, y + rowHeight);
+
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+                    doc.text(item.l, margin + 3, y + (rowHeight / 2), { baseline: 'middle' });
+
                     if (evidence) {
                         doc.setFont('helvetica', 'italic');
                         doc.setFontSize(9);
-                        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-                        doc.text(evLines, margin + 70, y + 6);
+                        doc.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+                        doc.text(evLines, margin + 75, y + 6);
                     }
-                    
-                    y += rowH;
+
+                    if (score > 0) {
+                        let scColor = colors.danger;
+                        if (score >= 4) scColor = colors.success;
+                        else if (score === 3) scColor = colors.warning;
+                        doc.setFillColor(scColor[0], scColor[1], scColor[2]);
+                        doc.roundedRect(margin + contentWidth - 12, y + (rowHeight / 2) - 4, 8, 8, 1, 1, 'F');
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFontSize(10);
+                        doc.text(String(score), margin + contentWidth - 8, y + (rowHeight / 2) + 0.5, { align: 'center', baseline: 'middle' });
+                    }
+                    y += rowHeight;
                 });
-                y += 10;
+                y += 15;
             };
 
-            drawTable('1. Competências', COMP, 'comp');
-            drawTable('2. Performance', PERF, 'perf');
+            renderTable('1. COMPETÊNCIAS TÉCNICAS E COMPORTAMENTAIS', COMP, 'comp');
+            renderTable('2. PERFORMANCE E RESULTADOS', PERF, 'perf');
 
-            // Diagnóstico e Observações
-            const drawBlock = (title, text) => {
+            const renderTextBlock = (title, text) => {
                 if (!text) return;
-                checkPage(25);
-                doc.setFont('helvetica', 'bold');
+                const lines = doc.splitTextToSize(text, contentWidth - 10);
+                const blockHeight = (lines.length * 6) + 15;
+                checkNewPage(blockHeight);
                 doc.setFontSize(13);
-                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
                 doc.text(title, margin, y);
-                y += 8;
-
-                const lines = doc.splitTextToSize(text, contentWidth - 8);
-                const h = (lines.length * 6) + 10;
-                checkPage(h);
-                
-                doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
-                doc.roundedRect(margin, y, contentWidth, h, 1, 1, 'F');
-                doc.setFont('helvetica', 'normal');
+                y += 6;
+                doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                doc.roundedRect(margin, y, contentWidth, blockHeight - 8, 1, 1, 'F');
                 doc.setFontSize(11);
-                doc.text(lines, margin + 4, y + 8);
-                y += h + 12;
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+                doc.text(lines, margin + 5, y + 8);
+                y += blockHeight + 5;
             };
 
             const diagD = av.diagSel ? DIAG.find(d => d.k === av.diagSel) : null;
-            drawBlock('3. Diagnóstico Final', diagD ? diagD.l : '—');
-            drawBlock('4. Pontos Fortes', av.fortes);
-            drawBlock('5. Pontos de Melhoria', av.melhoria);
-            drawBlock('6. Observações Adicionais', av.nsobs);
+            renderTextBlock('3. DIAGNÓSTICO FINAL', diagD ? diagD.l : '');
+            renderTextBlock('4. PONTOS FORTES IDENTIFICADOS', av.fortes);
+            renderTextBlock('5. OPORTUNIDADES DE MELHORIA', av.melhoria);
+            renderTextBlock('6. OBSERVAÇÕES E PRÓXIMOS PASSOS', av.nsobs);
 
-            // Assinatura
-            checkPage(30);
-            y += 10;
-            doc.setDrawColor(textDark[0], textDark[1], textDark[2]);
-            doc.line(margin + (contentWidth / 4), y + 15, margin + (3 * contentWidth / 4), y + 15);
-            doc.setFontSize(9);
-            doc.text('Assinatura do Formador', W / 2, y + 20, { align: 'center' });
+            checkNewPage(40);
+            y += 20;
+            doc.setDrawColor(colors.text[0], colors.text[1], colors.text[2]);
+            doc.setLineWidth(0.5);
+            doc.line(W / 2 - 40, y + 10, W / 2 + 40, y + 10);
+            doc.setFontSize(10);
+            doc.text('ASSINATURA DO FORMADOR', W / 2, y + 16, { align: 'center' });
             if (av.formador) {
                 doc.setFont('helvetica', 'bold');
-                doc.text(av.formador, W / 2, y + 13, { align: 'center' });
+                doc.text(av.formador.toUpperCase(), W / 2, y + 8, { align: 'center' });
             }
         });
 
-        // Paginação
         const totalPages = doc.getNumberOfPages();
         for (let i = 1; i <= totalPages; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
-            doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-            doc.text(`Página ${i} de ${totalPages}`, W - margin, H - 10, { align: 'right' });
+            doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
+            doc.text(`Emitido em ${new Date().toLocaleDateString('pt-BR')}  |  Página ${i} de ${totalPages}`, W / 2, H - 10, { align: 'center' });
         }
 
         const pdfUri = doc.output('datauristring');
         document.getElementById('overlay').classList.remove('show');
-        
         const win = window.open('', '_blank');
         if (win) {
-            win.document.write(`<html><head><title>Relatório de Avaliação</title></head><body style="margin:0"><iframe src="${pdfUri}" style="width:100%;height:100vh;border:none"></iframe></body></html>`);
+            win.document.write(`<html><head><title>Relatório Premium</title></head><body style="margin:0"><iframe src="${pdfUri}" style="width:100%;height:100vh;border:none"></iframe></body></html>`);
             win.document.close();
         } else {
             const a = document.createElement('a');
             a.href = pdfUri;
-            a.download = 'relatorio_avaliacao.pdf';
+            a.download = `Avaliacao_${items[0].nome || 'Relatorio'}.pdf`;
             a.click();
         }
-        showToast('PDF gerado com sucesso');
+        showToast('PDF Premium gerado com sucesso');
     } catch (e) {
-        console.error('Erro PDF:', e);
+        console.error('Erro PDF V2:', e);
         document.getElementById('overlay').classList.remove('show');
         alert('Erro ao gerar PDF: ' + e.message);
     }
