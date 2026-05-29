@@ -1108,22 +1108,22 @@ function _doPDF(inputData) {
 
             // Título e Metadados
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(18);
+            doc.setFontSize(22);
             doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-            doc.text('Relatório de Avaliação Individual', margin, y + 5);
-            y += 15;
+            doc.text('Relatório de Avaliação Individual', margin, y + 8);
+            y += 18;
 
-            doc.setFontSize(10);
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(textGray[0], textGray[1], textGray[2]);
             
             const metaY = y;
             doc.text(`Colaborador: ${av.nome || '—'}`, margin, metaY);
             doc.text(`Setor: ${av.setor || '—'}`, margin + (contentWidth / 2), metaY);
-            y += 6;
+            y += 8;
             doc.text(`Formador: ${av.formador || '—'}`, margin, y);
             doc.text(`Data: ${av.data ? new Date(av.data+'T12:00').toLocaleDateString('pt-BR') : '—'}`, margin + (contentWidth / 2), y);
-            y += 10;
+            y += 12;
 
             // Linha divisória
             doc.setDrawColor(border[0], border[1], border[2]);
@@ -1138,32 +1138,32 @@ function _doPDF(inputData) {
             doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
             
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9);
+            doc.setFontSize(10);
             doc.setTextColor(textGray[0], textGray[1], textGray[2]);
             doc.text('MÉDIA COMPETÊNCIAS', margin + 10, y + 8);
             doc.text('MÉDIA PERFORMANCE', margin + (contentWidth / 2) + 10, y + 8);
             
-            doc.setFontSize(14);
+            doc.setFontSize(18);
             doc.setTextColor(primary[0], primary[1], primary[2]);
-            doc.text(String(cAvg), margin + 10, y + 15);
-            doc.text(String(pAvg), margin + (contentWidth / 2) + 10, y + 15);
-            y += 25;
+            doc.text(String(cAvg), margin + 10, y + 16);
+            doc.text(String(pAvg), margin + (contentWidth / 2) + 10, y + 16);
+            y += 28;
 
             // Tabelas de Notas
             const drawTable = (title, dataItems, prefix) => {
                 checkPage(20);
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
+                doc.setFontSize(13);
                 doc.setTextColor(textDark[0], textDark[1], textDark[2]);
                 doc.text(title, margin, y);
-                y += 6;
+                y += 8;
 
                 dataItems.forEach(item => {
                     const score = av.scores[prefix + '_' + item.k] || '—';
                     const evidence = av.evid ? (av.evid[prefix + '_' + item.k] || '') : '';
                     
-                    const evLines = evidence ? doc.splitTextToSize(evidence, contentWidth - 60) : [];
-                    const rowH = Math.max(10, (evLines.length * 5) + 5);
+                    const evLines = evidence ? doc.splitTextToSize(evidence, contentWidth - 80) : [];
+                    const rowH = Math.max(12, (evLines.length * 6) + 6);
                     
                     checkPage(rowH);
                     
@@ -1171,9 +1171,9 @@ function _doPDF(inputData) {
                     doc.rect(margin, y, contentWidth, rowH);
                     
                     doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(9);
+                    doc.setFontSize(10);
                     doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-                    doc.text(item.l, margin + 2, y + 6);
+                    doc.text(item.l, margin + 3, y + (rowH/2), {baseline: 'middle'});
                     
                     // Nota com cor
                     if (score !== '—') {
@@ -1183,13 +1183,14 @@ function _doPDF(inputData) {
                         else doc.setTextColor(192, 57, 43); // Vermelho
                     }
                     doc.setFont('helvetica', 'bold');
-                    doc.text(String(score), margin + contentWidth - 10, y + 6, { align: 'right' });
+                    doc.setFontSize(12);
+                    doc.text(String(score), margin + contentWidth - 10, y + (rowH/2), { align: 'right', baseline: 'middle' });
                     
                     if (evidence) {
                         doc.setFont('helvetica', 'italic');
-                        doc.setFontSize(8);
+                        doc.setFontSize(9);
                         doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-                        doc.text(evLines, margin + 50, y + 5);
+                        doc.text(evLines, margin + 70, y + 6);
                     }
                     
                     y += rowH;
@@ -1203,23 +1204,23 @@ function _doPDF(inputData) {
             // Diagnóstico e Observações
             const drawBlock = (title, text) => {
                 if (!text) return;
-                checkPage(20);
+                checkPage(25);
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
+                doc.setFontSize(13);
                 doc.setTextColor(textDark[0], textDark[1], textDark[2]);
                 doc.text(title, margin, y);
-                y += 6;
+                y += 8;
 
-                const lines = doc.splitTextToSize(text, contentWidth - 4);
-                const h = (lines.length * 5) + 6;
+                const lines = doc.splitTextToSize(text, contentWidth - 8);
+                const h = (lines.length * 6) + 10;
                 checkPage(h);
                 
                 doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
-                doc.rect(margin, y, contentWidth, h, 'F');
+                doc.roundedRect(margin, y, contentWidth, h, 1, 1, 'F');
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(9);
-                doc.text(lines, margin + 2, y + 5);
-                y += h + 8;
+                doc.setFontSize(11);
+                doc.text(lines, margin + 4, y + 8);
+                y += h + 12;
             };
 
             const diagD = av.diagSel ? DIAG.find(d => d.k === av.diagSel) : null;
