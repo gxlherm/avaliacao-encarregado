@@ -1,0 +1,12 @@
+{
+  "name": "avaliacao-encarregado",
+  "version": "1.0.0",
+  "description": "Sistema de Avaliação de Encarregado com OCR e IA",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve ."
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
