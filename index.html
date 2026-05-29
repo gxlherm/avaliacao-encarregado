@@ -1063,357 +1063,212 @@ function showToast(msg){
 // ─── PDF — LAYOUT NEUTRO, SEM CORTES ─────────
 // ═══════════════════════════════════════════════
 function generatePDF(){ document.getElementById('overlay').classList.add('show'); setTimeout(function(){_doPDF(collectData());},150); }
-    function _doPDF(av){
-  try{
-    var jsPDF=window.jspdf.jsPDF;
-    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
-    var W=210, ML=16, MR=16, TW=W-ML-MR;
-    var y=0;
-    var pageH=297, footH=12, safeBottom=pageH-footH-10;
-
-    // ── PALETA PROFISSIONAL (tons neutros, imprimível) ──
-    var C_WHITE=[255,255,255];
-    var C_BG=[250,250,250];
-    var C_BG2=[244,244,245];
-    var C_TEXT=[30,30,35];
-    var C_TEXT2=[60,65,80];
-    var C_MUTED=[120,125,135];
-    var C_MUTED2=[170,175,185];
-    var C_BORDER=[210,213,220];
-    var C_BORDER2=[190,193,200];
-    var C_PRIMARY=[50,80,160];   // azul discreto
-    var C_PLIGHT=[240,243,252];
-    var C_GREEN=[40,110,80];     // verde escuro
-    var C_GLIGHT=[238,248,242];
-    var C_RED=[160,50,45];
-    var C_AMBER=[150,100,20];
-    var C_ACCENT=[50,80,160];    // mesmo azul
-
-    function fill(c){doc.setFillColor(c[0],c[1],c[2]);}
-    function draw(c){doc.setDrawColor(c[0],c[1],c[2]);}
-    function txt(c){doc.setTextColor(c[0],c[1],c[2]);}
-
-    var nome=av.nome||'-';
-    var setor=av.setor||'-';
-    var semana=av.semana||'-';
-    var formador=av.formador||'-';
-    var dataFmt=av.data?new Date(av.data+'T12:00').toLocaleDateString('pt-BR'):'-';
-
-    // ── Rodapé de página ──
-    function initPage(){
-      fill(C_WHITE); doc.rect(0,0,W,pageH,'F');
-      // linha divisória no rodapé — fina e cinza
-      draw(C_BORDER); doc.setLineWidth(0.3);
-      doc.line(ML, pageH-footH, W-MR, pageH-footH);
-      txt(C_MUTED2); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
-      doc.text('Avaliacao Individual de Encarregado  —  '+nome+'  |  '+setor, ML, pageH-footH+4.5);
-      doc.text('Pagina '+(doc.getCurrentPageInfo().pageNumber), W-MR, pageH-footH+4.5,{align:'right'});
-    }
-
-    function addPage(){
-      doc.addPage();
-      initPage();
-      y=18;
-    }
-
-    function ck(h){
-      if(y+h>safeBottom){ 
-        addPage(); 
-        return true; 
-      }
-      return false;
-    }
-
-    // Função auxiliar para desenhar blocos de texto com quebra de página automática
-    function drawWrappedText(text, x, width, fontSize, lineHeight, color) {
-      doc.setFontSize(fontSize);
-      txt(color);
-      var lines = doc.splitTextToSize(text, width);
-      lines.forEach(function(line) {
-        ck(lineHeight);
-        doc.text(line, x, y);
-        y += lineHeight;
-      });
-    }
-
-    // ── CABEÇALHO PÁGINA 1 — clean, sem fundo escuro ──
-    var cAvgV=calcAvg(av.scores,COMP,'comp');
-    var pAvgV=calcAvg(av.scores,PERF,'perf');
-
-    // Inicializa rodapé da página 1 via initPage()
-    initPage();
-
-    // Fundo branco + borda inferior sutil no cabeçalho
-    fill(C_WHITE); doc.rect(0,0,W,52,'F');
-    draw(C_BORDER); doc.setLineWidth(0.4);
-    doc.line(0,52,W,52);
-    // Linha de acento colorida no topo — 2px
-    fill(C_PRIMARY); doc.rect(0,0,W,2.5,'F');
-
-    // Label do documento
-    txt(C_MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(7);
-    doc.text('FICHA DE AVALIACAO INDIVIDUAL DE ENCARREGADO', ML, 11);
-
-    // Nome do avaliado
-    txt(C_TEXT); doc.setFont('helvetica','bold'); doc.setFontSize(15);
-    doc.text(nome, ML, 22);
-
-    // Linha de metadados
-    txt(C_MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    doc.text('Setor: '+setor+'   |   Formador: '+formador+'   |   Semana: '+semana+'   |   Data: '+dataFmt, ML, 31);
-
-    // Scores — dois blocos leves à direita
-    function scoreBox(label, val, x){
-      var bw=36, bh=14;
-      fill(C_BG2); draw(C_BORDER); doc.setLineWidth(0.3);
-      doc.roundedRect(x,36,bw,bh,1.5,1.5,'FD');
-      txt(C_MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(6);
-      doc.text(label, x+bw/2, 41, {align:'center'});
-      txt(C_TEXT); doc.setFont('helvetica','bold'); doc.setFontSize(11);
-      doc.text(String(val), x+bw/2, 47.5, {align:'center'});
-    }
-    scoreBox('COMPETENCIAS', cAvgV, W-MR-78);
-    scoreBox('PERFORMANCE',  pAvgV, W-MR-38);
-
-    y=60;
-
-    // ── TÍTULOS DE SEÇÃO — linha + texto, sem fundo colorido ──
-    function secHead(title){
-      ck(15);
-      fill(C_PRIMARY); doc.rect(ML,y,2.5,8,'F');
-      txt(C_TEXT); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-      doc.text(title.toUpperCase(), ML+5.5, y+6);
-      draw(C_BORDER); doc.setLineWidth(0.3);
-      doc.line(ML+5.5, y+9, ML+TW, y+9);
-      y+=14;
-    }
-
-    // ── TABLE: competências / performance ──
-    function drawTable(items, prefix){
-      var C1=TW*0.46, C2=18, C3=TW-C1-C2;
-      var RH=10.5; // row height
-
-      // table header row
-      ck(8);
-      fill(C_BG); doc.roundedRect(ML,y,TW,7,1,1,'F');
-      draw(C_BORDER); doc.setLineWidth(0.2); doc.roundedRect(ML,y,TW,7,1,1,'S');
-      txt(C_MUTED); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-      doc.text('CRITERIO / COMPETENCIA',ML+3,y+4.8);
-      doc.text('NOTA',ML+C1+C2/2,y+4.8,{align:'center'});
-      doc.text('EVIDENCIA OBSERVADA',ML+C1+C2+3,y+4.8);
-      y+=8;
-
-      items.forEach(function(item,idx){
-        var sc=av.scores[prefix+'_'+item.k]||0;
-        var evTxt=av.evid[prefix+'_'+item.k]||'';
+function _doPDF(inputData) {
+    try {
+        const jsPDF = window.jspdf.jsPDF;
+        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
         
-        var evLines=evTxt?doc.splitTextToSize(evTxt,C3-5):[];
-        var rowH=Math.max(RH, evLines.length>1?(evLines.length*4.5+4):RH);
+        const W = 210;
+        const H = 297;
+        const margin = 15;
+        const contentWidth = W - (margin * 2);
+        let y = margin;
 
-        ck(rowH+1);
-        var bg=idx%2===0?C_WHITE:C_BG;
-        fill(bg); doc.rect(ML,y,TW,rowH,'F');
-        draw(C_BORDER); doc.setLineWidth(0.12);
-        doc.line(ML,y+rowH,ML+TW,y+rowH);
+        const items = Array.isArray(inputData) ? inputData : [inputData];
 
-        txt(C_TEXT2); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-        doc.text(item.l,ML+3,y+rowH/2+1.5,{baseline:'middle'});
+        // Cores
+        const primary = [26, 86, 219];
+        const textDark = [15, 17, 23];
+        const textGray = [107, 114, 128];
+        const border = [226, 229, 235];
+        const bgLight = [249, 250, 251];
 
-        if(sc>0){
-          var bc=sc>=4?C_GREEN:sc===3?C_AMBER:C_RED;
-          fill(bc); doc.roundedRect(ML+C1+2,y+(rowH-7)/2,14,7,2,2,'F');
-          txt(C_WHITE); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-          doc.text(String(sc),ML+C1+9,y+rowH/2+1.5,{align:'center',baseline:'middle'});
-        }else{
-          txt(C_MUTED2); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-          doc.text('—',ML+C1+9,y+rowH/2+1.5,{align:'center',baseline:'middle'});
-        }
+        const checkPage = (h) => {
+            if (y + h > H - margin - 15) {
+                doc.addPage();
+                y = margin;
+                drawHeader();
+                return true;
+            }
+            return false;
+        };
 
-        if(evTxt){
-          txt(C_TEXT2); doc.setFont('helvetica','italic'); doc.setFontSize(7.5);
-          doc.text(evLines,ML+C1+C2+3,y+4.5);
-        }
-        y+=rowH;
-      });
+        const drawHeader = () => {
+            doc.setFillColor(primary[0], primary[1], primary[2]);
+            doc.rect(0, 0, W, 2, 'F');
+            y = margin + 2;
+        };
 
-      // average row
-      var vals=items.map(function(it){return av.scores[prefix+'_'+it.k]||0;}).filter(function(v){return v>0;});
-      if(vals.length){
-        var avg2=(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(1);
-        ck(9);
-        fill(C_PLIGHT); doc.roundedRect(ML,y+1,TW,8,1.5,1.5,'F');
-        draw(C_PRIMARY); doc.setLineWidth(0.2); doc.roundedRect(ML,y+1,TW,8,1.5,1.5,'S');
-        txt(C_PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-        doc.text('MEDIA GERAL',ML+4,y+6.5);
-        doc.setFontSize(10);
-        doc.text(avg2,ML+TW/2,y+6.5,{align:'center'});
-        y+=12;
-      }
-      y+=3;
-    }
+        items.forEach((av, index) => {
+            if (index > 0) {
+                doc.addPage();
+                y = margin;
+            }
+            drawHeader();
 
-    // ── SECTION 1: COMP ──
-    secHead('1. Competencias de Encarregado');
-    drawTable(COMP,'comp');
+            // Título e Metadados
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            doc.text('Relatório de Avaliação Individual', margin, y + 5);
+            y += 15;
 
-    // ── SECTION 2: PERF ──
-    ck(20); secHead('2. Performance no Setor');
-    drawTable(PERF,'perf');
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+            
+            const metaY = y;
+            doc.text(`Colaborador: ${av.nome || '—'}`, margin, metaY);
+            doc.text(`Setor: ${av.setor || '—'}`, margin + (contentWidth / 2), metaY);
+            y += 6;
+            doc.text(`Formador: ${av.formador || '—'}`, margin, y);
+            doc.text(`Data: ${av.data ? new Date(av.data+'T12:00').toLocaleDateString('pt-BR') : '—'}`, margin + (contentWidth / 2), y);
+            y += 10;
 
-    // ── SECTION 3: DIAGNÓSTICO ──
-    secHead('3. Diagnostico Final do Formador');
-    DIAG.forEach(function(d){
-      var sel=av.diagSel===d.k;
-      var rowH=11;
-      ck(rowH+2);
-      if(sel){
-        fill(C_PLIGHT); doc.roundedRect(ML,y,TW,rowH,1.5,1.5,'F');
-        draw(C_PRIMARY); doc.setLineWidth(0.4); doc.roundedRect(ML,y,TW,rowH,1.5,1.5,'S');
-        fill(C_PRIMARY); doc.circle(ML+5,y+rowH/2,2.5,'F');
-        fill(C_WHITE); doc.circle(ML+5,y+rowH/2,1,'F');
-        txt(C_PRIMARY); doc.setFont('helvetica','bold');
-      } else {
-        fill(C_BG); doc.roundedRect(ML,y,TW,rowH,1.5,1.5,'F');
-        fill(C_BORDER); doc.circle(ML+5,y+rowH/2,2.5,'F');
-        txt(C_TEXT2); doc.setFont('helvetica','normal');
-      }
-      doc.setFontSize(8.5);
-      doc.text(d.l,ML+11,y+rowH/2+1.2);
-      y+=rowH+2.5;
-    });
-    y+=4;
+            // Linha divisória
+            doc.setDrawColor(border[0], border[1], border[2]);
+            doc.line(margin, y, W - margin, y);
+            y += 10;
 
-    // ── SECTION 4 & 5: ANÁLISE ──
-    function drawAnalysisBlock(title, content){
-      secHead(title);
-      var text=content||'Nenhuma observação registrada.';
-      var lines=doc.splitTextToSize(text,TW-10);
-      var h=(lines.length*5)+8;
-      
-      // Se o bloco for muito grande, vamos desenhar linha por linha para permitir quebra de página
-      if(y + h > safeBottom) {
-        fill(C_BG); draw(C_BORDER); doc.setLineWidth(0.2);
-        // Desenha apenas o fundo para o que couber ou inicia em nova página se for o caso
-        ck(15); 
-        txt(C_TEXT2); doc.setFont('helvetica','normal'); doc.setFontSize(9);
-        lines.forEach(function(line, i) {
-          ck(6);
-          if (i === 0) {
-             // Pequeno padding no topo do primeiro bloco de texto
-             y += 2;
-          }
-          doc.text(line, ML+5, y);
-          y += 5;
+            // Seção de Médias
+            const cAvg = calcAvg(av.scores, COMP, 'comp');
+            const pAvg = calcAvg(av.scores, PERF, 'perf');
+
+            doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
+            doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+            doc.text('MÉDIA COMPETÊNCIAS', margin + 10, y + 8);
+            doc.text('MÉDIA PERFORMANCE', margin + (contentWidth / 2) + 10, y + 8);
+            
+            doc.setFontSize(14);
+            doc.setTextColor(primary[0], primary[1], primary[2]);
+            doc.text(String(cAvg), margin + 10, y + 15);
+            doc.text(String(pAvg), margin + (contentWidth / 2) + 10, y + 15);
+            y += 25;
+
+            // Tabelas de Notas
+            const drawTable = (title, dataItems, prefix) => {
+                checkPage(20);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                doc.text(title, margin, y);
+                y += 6;
+
+                dataItems.forEach(item => {
+                    const score = av.scores[prefix + '_' + item.k] || '—';
+                    const evidence = av.evid ? (av.evid[prefix + '_' + item.k] || '') : '';
+                    
+                    const evLines = evidence ? doc.splitTextToSize(evidence, contentWidth - 60) : [];
+                    const rowH = Math.max(10, (evLines.length * 5) + 5);
+                    
+                    checkPage(rowH);
+                    
+                    doc.setDrawColor(border[0], border[1], border[2]);
+                    doc.rect(margin, y, contentWidth, rowH);
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                    doc.text(item.l, margin + 2, y + 6);
+                    
+                    // Nota com cor
+                    if (score !== '—') {
+                        const sNum = parseInt(score);
+                        if (sNum >= 4) doc.setTextColor(13, 122, 95); // Verde
+                        else if (sNum === 3) doc.setTextColor(180, 83, 9); // Âmbar
+                        else doc.setTextColor(192, 57, 43); // Vermelho
+                    }
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(String(score), margin + contentWidth - 10, y + 6, { align: 'right' });
+                    
+                    if (evidence) {
+                        doc.setFont('helvetica', 'italic');
+                        doc.setFontSize(8);
+                        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+                        doc.text(evLines, margin + 50, y + 5);
+                    }
+                    
+                    y += rowH;
+                });
+                y += 10;
+            };
+
+            drawTable('1. Competências', COMP, 'comp');
+            drawTable('2. Performance', PERF, 'perf');
+
+            // Diagnóstico e Observações
+            const drawBlock = (title, text) => {
+                if (!text) return;
+                checkPage(20);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                doc.text(title, margin, y);
+                y += 6;
+
+                const lines = doc.splitTextToSize(text, contentWidth - 4);
+                const h = (lines.length * 5) + 6;
+                checkPage(h);
+                
+                doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
+                doc.rect(margin, y, contentWidth, h, 'F');
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.text(lines, margin + 2, y + 5);
+                y += h + 8;
+            };
+
+            const diagD = av.diagSel ? DIAG.find(d => d.k === av.diagSel) : null;
+            drawBlock('3. Diagnóstico Final', diagD ? diagD.l : '—');
+            drawBlock('4. Pontos Fortes', av.fortes);
+            drawBlock('5. Pontos de Melhoria', av.melhoria);
+            drawBlock('6. Observações Adicionais', av.nsobs);
+
+            // Assinatura
+            checkPage(30);
+            y += 10;
+            doc.setDrawColor(textDark[0], textDark[1], textDark[2]);
+            doc.line(margin + (contentWidth / 4), y + 15, margin + (3 * contentWidth / 4), y + 15);
+            doc.setFontSize(9);
+            doc.text('Assinatura do Formador', W / 2, y + 20, { align: 'center' });
+            if (av.formador) {
+                doc.setFont('helvetica', 'bold');
+                doc.text(av.formador, W / 2, y + 13, { align: 'center' });
+            }
         });
-        y += 2;
-      } else {
-        fill(C_BG); draw(C_BORDER); doc.setLineWidth(0.2);
-        doc.roundedRect(ML,y,TW,h,1.5,1.5,'FD');
-        txt(C_TEXT2); doc.setFont('helvetica','normal'); doc.setFontSize(9);
-        doc.text(lines,ML+5,y+7);
-        y+=h+6;
-      }
+
+        // Paginação
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+            doc.text(`Página ${i} de ${totalPages}`, W - margin, H - 10, { align: 'right' });
+        }
+
+        const pdfUri = doc.output('datauristring');
+        document.getElementById('overlay').classList.remove('show');
+        
+        const win = window.open('', '_blank');
+        if (win) {
+            win.document.write(`<html><head><title>Relatório de Avaliação</title></head><body style="margin:0"><iframe src="${pdfUri}" style="width:100%;height:100vh;border:none"></iframe></body></html>`);
+            win.document.close();
+        } else {
+            const a = document.createElement('a');
+            a.href = pdfUri;
+            a.download = 'relatorio_avaliacao.pdf';
+            a.click();
+        }
+        showToast('PDF gerado com sucesso');
+    } catch (e) {
+        console.error('Erro PDF:', e);
+        document.getElementById('overlay').classList.remove('show');
+        alert('Erro ao gerar PDF: ' + e.message);
     }
-    drawAnalysisBlock('4. Pontos Fortes', av.fortes);
-    drawAnalysisBlock('5. Pontos de Melhoria', av.melhoria);
-
-    // ── SECTION 6: PRÓXIMOS PASSOS ──
-    secHead('6. Recomendacao de Proximo Passo');
-    NS.forEach(function(s){
-      var sel=av.nsSel&&av.nsSel.includes(s.k);
-      var rowH=11;
-      ck(rowH+2);
-      if(sel){
-        fill(C_GLIGHT); doc.roundedRect(ML,y,TW,rowH,1.5,1.5,'F');
-        draw(C_GREEN); doc.setLineWidth(0.4); doc.roundedRect(ML,y,TW,rowH,1.5,1.5,'S');
-        fill(C_GREEN); doc.roundedRect(ML+3,y+(rowH-5)/2,5,5,1,1,'F');
-        txt(C_WHITE); doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.text('v',ML+5.5,y+rowH/2+1.2,{align:'center'});
-        txt(C_GREEN); doc.setFont('helvetica','bold');
-      } else {
-        fill(C_BG); doc.roundedRect(ML,y,TW,rowH,1.5,1.5,'F');
-        fill(C_BORDER); doc.roundedRect(ML+3,y+(rowH-5)/2,5,5,1,1,'F');
-        txt(C_TEXT2); doc.setFont('helvetica','normal');
-      }
-      doc.setFontSize(8.5);
-      doc.text(s.l,ML+11,y+5);
-      txt(C_MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-      doc.text(s.n,ML+11,y+9);
-      y+=rowH+2.5;
-    });
-
-    if(av.nsobs){
-      y+=2;
-      var obsLines=doc.splitTextToSize('Obs: '+av.nsobs,TW-10);
-      var obsH=obsLines.length*5+6;
-      ck(obsH+4);
-      fill(C_BG2); doc.roundedRect(ML,y,TW,obsH,1,1,'F');
-      txt(C_TEXT2); doc.setFont('helvetica','italic'); doc.setFontSize(8);
-      doc.text(obsLines,ML+5,y+6);
-      y+=obsH+6;
-    }
-
-    // ── TRIPE FOOTER BOX ──
-    y+=3; ck(22);
-    draw(C_BORDER); doc.setLineWidth(0.5);
-    doc.roundedRect(ML,y,TW,18,2,2,'S');
-    txt(C_MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-    doc.text('A decisao final deve considerar o tripe:',ML+TW/2,y+7,{align:'center'});
-    txt(C_TEXT); doc.setFont('helvetica','bold'); doc.setFontSize(10);
-    doc.text('Postura  +  Influencia  +  Resultado',ML+TW/2,y+14,{align:'center'});
-    y+=22;
-
-    // ── ASSINATURA ──
-    y+=6; ck(22);
-    var midX=W/2;
-    draw(C_BORDER); doc.setLineWidth(0.4);
-    doc.line(midX-45,y+14,midX+45,y+14);
-    if(formador&&formador!=='-'){
-      txt(C_TEXT); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-      doc.text(formador,midX,y+9,{align:'center'});
-    }
-    txt(C_MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    doc.text('Assinatura do Formador',midX,y+19,{align:'center'});
-
-    // ── PAGINACAO FINAL (atualiza todas as paginas) ──
-    var totalPages=doc.getNumberOfPages();
-    for(var p=1;p<=totalPages;p++){
-      doc.setPage(p);
-      txt(C_MUTED2); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
-      doc.text('Pagina '+p+' de '+totalPages,W-MR,pageH-footH+4.5,{align:'right'});
-    }
-
-    // ── OPEN PDF (iOS/Android/Desktop compat) ──
-    var pdfUri=doc.output('datauristring');
-    document.getElementById('overlay').classList.remove('show');
-
-    var win=window.open('','_blank');
-    if(win){
-      win.document.write(
-        '<!DOCTYPE html><html><head><title>Avaliacao - '+nome+'</title>'+
-        '<meta name="viewport" content="width=device-width">'+
-        '<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#1a1a1a;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:0}'+
-        '.bar{width:100%;background:#111;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}'+
-        '.bar span{color:#aaa;font-size:13px}'+
-        '.dl{background:#fff;color:#111;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none}'+
-        'iframe{width:100%;max-width:960px;flex:1;border:none;height:calc(100vh - 50px)}'+
-        '</style></head><body>'+
-        '<div class="bar"><span>'+nome+' — '+setor+'</span><a class="dl" href="'+pdfUri+'" download="avaliacao_'+nome.replace(/\s+/g,'_')+'_'+setor+'.pdf">Baixar PDF</a></div>'+
-        '<iframe src="'+pdfUri+'"></iframe>'+
-        '</body></html>'
-      );
-      win.document.close();
-    }else{
-      var a=document.createElement('a');
-      a.href=pdfUri;
-      a.download='avaliacao_'+nome.replace(/\s+/g,'_')+'_'+setor+'.pdf';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-    showToast('PDF gerado com sucesso');
-  }catch(e){
-    console.error(e);
-    document.getElementById('overlay').classList.remove('show');
-    showToast('Erro: '+e.message);
-  }
 }
 
 // ═══════════════════════════════════════════════
