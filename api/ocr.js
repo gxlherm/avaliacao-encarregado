@@ -33,8 +33,13 @@ INSTRUÇÕES DE EXTRAÇÃO (MODELO REAL):
    - rotina: "Organização da rotina"
    - perdas: "Atenção a perdas / qualidade"
    - equipe: "Relacionamento com equipe do setor"
-   - orientar: "Capacidade de orientar colegas" (pode estar no topo da página 2)
-   - postura: "Postura para assumir o setor" (pode estar no topo da página 2)
+   - orientar: "Capacidade de orientar colegas"
+   - postura: "Postura para assumir o setor"
+
+4. ANÁLISE E OBSERVAÇÕES:
+   - fortes: Texto manuscrito em "Pontos Fortes"
+   - melhoria: Texto manuscrito em "Pontos de Melhoria"
+   - observacoes: Texto manuscrito em "Observações" ou recomendações finais.
 
 RETORNE APENAS JSON válido, sem markdown, no formato:
 {
@@ -44,31 +49,31 @@ RETORNE APENAS JSON válido, sem markdown, no formato:
   "semana": "",
   "data": "",
   "competencias": {
-    "comunicacao": 0,
-    "lideranca": 0,
-    "decisao": 0,
-    "organizacao": 0,
-    "urgencia": 0,
-    "emocional": 0,
-    "conflitos": 0,
-    "resultado": 0,
-    "influencia": 0,
-    "treinar": 0
+    "comunicacao": {"nota": 0, "evidencia": ""},
+    "lideranca": {"nota": 0, "evidencia": ""},
+    "decisao": {"nota": 0, "evidencia": ""},
+    "organizacao": {"nota": 0, "evidencia": ""},
+    "urgencia": {"nota": 0, "evidencia": ""},
+    "emocional": {"nota": 0, "evidencia": ""},
+    "conflitos": {"nota": 0, "evidencia": ""},
+    "resultado": {"nota": 0, "evidencia": ""},
+    "influencia": {"nota": 0, "evidencia": ""},
+    "treinar": {"nota": 0, "evidencia": ""}
   },
   "performance": {
-    "dominio": 0,
-    "aprendiz": 0,
-    "rotina": 0,
-    "perdas": 0,
-    "equipe": 0,
-    "orientar": 0,
-    "postura": 0
+    "dominio": {"nota": 0, "evidencia": ""},
+    "aprendiz": {"nota": 0, "evidencia": ""},
+    "rotina": {"nota": 0, "evidencia": ""},
+    "perdas": {"nota": 0, "evidencia": ""},
+    "equipe": {"nota": 0, "evidencia": ""},
+    "orientar": {"nota": 0, "evidencia": ""},
+    "postura": {"nota": 0, "evidencia": ""}
   },
-  "diagnostico": "",
-  "proximosPassos": [],
-  "fortes": "",
-  "melhoria": "",
-  "observacoes": ""
+  "diagnostico": "chave",
+  "proximosPassos": ["chave1", "chave2"],
+  "fortes": "texto extraído",
+  "melhoria": "texto extraído",
+  "observacoes": "texto extraído"
 }`;
 
 async function tryModel(model, messages) {
