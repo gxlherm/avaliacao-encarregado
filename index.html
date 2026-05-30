@@ -1134,7 +1134,7 @@ function _doPDF(inputData) {
             doc.text(String(av.formador || 'N/A').toUpperCase(), margin + 5, y + 28);
             const dataFmt = av.data ? new Date(av.data + 'T12:00').toLocaleDateString('pt-BR') : 'N/A';
             doc.text(dataFmt, margin + contentWidth / 2 + 5, y + 28);
-            y += 45;
+            y += 35;
 
             const cAvg = calcAvg(av.scores, COMP, 'comp');
             const pAvg = calcAvg(av.scores, PERF, 'perf');
@@ -1142,19 +1142,19 @@ function _doPDF(inputData) {
             const drawScoreCircle = (label, score, x) => {
                 doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
                 doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-                doc.setLineWidth(0.5);
-                doc.circle(x, y + 10, 15, 'FD');
-                doc.setFontSize(16);
+                doc.setLineWidth(0.4);
+                doc.circle(x, y + 8, 12, 'FD');
+                doc.setFontSize(14);
                 doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-                doc.text(String(score), x, y + 12, { align: 'center' });
-                doc.setFontSize(9);
+                doc.text(String(score), x, y + 10, { align: 'center' });
+                doc.setFontSize(8);
                 doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2]);
-                doc.text(label, x, y + 30, { align: 'center' });
+                doc.text(label, x, y + 25, { align: 'center' });
             };
 
             drawScoreCircle('MÉDIA COMPETÊNCIAS', cAvg, margin + contentWidth / 4);
             drawScoreCircle('MÉDIA PERFORMANCE', pAvg, margin + (3 * contentWidth / 4));
-            y += 45;
+            y += 32;
 
             const renderTable = (title, itemsList, prefix) => {
                 checkNewPage(25);
@@ -1171,7 +1171,7 @@ function _doPDF(inputData) {
                     const score = av.scores[prefix + '_' + item.k] || 0;
                     const evidence = av.evid ? (av.evid[prefix + '_' + item.k] || '') : '';
                     const evLines = evidence ? doc.splitTextToSize(evidence, contentWidth - 85) : [];
-                    const rowHeight = Math.max(15, (evLines.length * 5) + 8);
+                    const rowHeight = Math.max(12, (evLines.length * 4.5) + 6);
 
                     checkNewPage(rowHeight);
 
@@ -1191,9 +1191,9 @@ function _doPDF(inputData) {
 
                     if (evidence) {
                         doc.setFont('helvetica', 'italic');
-                        doc.setFontSize(9);
+                        doc.setFontSize(8.5);
                         doc.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
-                        doc.text(evLines, margin + 75, y + 6);
+                        doc.text(evLines, margin + 70, y + 5);
                     }
 
                     if (score > 0) {
@@ -1217,19 +1217,19 @@ function _doPDF(inputData) {
             const renderTextBlock = (title, text) => {
                 if (!text) return;
                 const lines = doc.splitTextToSize(text, contentWidth - 10);
-                const blockHeight = (lines.length * 6) + 15;
+                const blockHeight = (lines.length * 5) + 12;
                 checkNewPage(blockHeight);
-                doc.setFontSize(13);
+                doc.setFontSize(12);
                 doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
                 doc.text(title, margin, y);
-                y += 6;
+                y += 5;
                 doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
-                doc.roundedRect(margin, y, contentWidth, blockHeight - 8, 1, 1, 'F');
-                doc.setFontSize(11);
+                doc.roundedRect(margin, y, contentWidth, blockHeight - 7, 1, 1, 'F');
+                doc.setFontSize(10.5);
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
-                doc.text(lines, margin + 5, y + 8);
-                y += blockHeight + 5;
+                doc.text(lines, margin + 4, y + 6);
+                y += blockHeight + 3;
             };
 
             const diagD = av.diagSel ? DIAG.find(d => d.k === av.diagSel) : null;
@@ -1238,15 +1238,15 @@ function _doPDF(inputData) {
             renderTextBlock('5. OPORTUNIDADES DE MELHORIA', av.melhoria);
             renderTextBlock('6. OBSERVAÇÕES E PRÓXIMOS PASSOS', av.nsobs);
 
-            // Assinatura Final - Otimizada
-            const sigH = 30;
-            if (y + sigH > H - margin - 10) {
+            // Assinatura Final - Ultra Compacta
+            const sigH = 20;
+            if (y + sigH > H - margin - 5) {
                 doc.addPage();
                 y = margin + 10;
                 doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
                 doc.rect(0, 0, 2, H, 'F');
             } else {
-                y += 10;
+                y += 5;
             }
 
             doc.setDrawColor(colors.text[0], colors.text[1], colors.text[2]);
