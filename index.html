@@ -1259,18 +1259,38 @@ function _doPDF(inputData) {
             doc.text(`Emitido em ${new Date().toLocaleDateString('pt-BR')}  |  Página ${i} de ${totalPages}`, W / 2, H - 10, { align: 'center' });
         }
 
-        const pdfUri = doc.output('datauristring');
+        // Usar Blob para evitar limitações de Data URI em navegadores mobile/desktop
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
         document.getElementById('overlay').classList.remove('show');
-        const win = window.open('', '_blank');
-        if (win) {
-            win.document.write(`<html><head><title>Relatório Premium</title></head><body style="margin:0"><iframe src="${pdfUri}" style="width:100%;height:100vh;border:none"></iframe></body></html>`);
-            win.document.close();
+
+        // Em dispositivos móveis, o download direto costuma funcionar melhor que abrir nova aba
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (!isMobile) {
+            const win = window.open(pdfUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                // Se o popup for bloqueado, forçar download
+                const a = document.createElement('a');
+                a.href = pdfUrl;
+                a.download = `Avaliacao_${items[0].nome || 'Relatorio'}.pdf`;
+                a.click();
+            }
         } else {
+            // Mobile: Forçar download ou abrir em nova aba dependendo do suporte
             const a = document.createElement('a');
-            a.href = pdfUri;
+            a.href = pdfUrl;
             a.download = `Avaliacao_${items[0].nome || 'Relatorio'}.pdf`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
         }
+        
+        // Limpar memória após um tempo
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 10000);
         showToast('PDF Premium gerado com sucesso');
     } catch (e) {
         console.error('Erro PDF V2:', e);
