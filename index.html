@@ -1455,7 +1455,7 @@ async function aiSuggest(type){
       });
     } else {
       titleEl.textContent = 'Não foi possível gerar sugestões. Escreva livremente.';
-      console.error('JSON inválido ou vazio:', result);
+      console.error('JSON inválido ou vazio:', (typeof result !== 'undefined' ? result : 'vazio'));
     }
   } catch(e) {
     spinner.style.display = 'none';
