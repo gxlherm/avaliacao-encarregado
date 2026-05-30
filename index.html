@@ -1368,21 +1368,19 @@ function callAI(systemPrompt, userMsg){
   });
 }
 
-function parseJsonSafe(text){
-  try {
-    // Remove markdown code fences if present
-    var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
-    return JSON.parse(clean);
-  } catch(e) {
-    // Try to extract JSON object from inside text
-    var match = text.match(/\{[\s\S]*\}/);
-    if (match) {
-      try { return JSON.parse(match[0]); } catch(e2){}
-    }
-    console.error('parseJsonSafe falhou:', text);
-    return null;
-  }
-}
+	function parseJsonSafe(text){
+	  if (!text || typeof text !== 'string') return null;
+	  try {
+	    var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+	    return JSON.parse(clean);
+	  } catch(e) {
+	    var match = text.match(/\{[\s\S]*\}/);
+	    if (match) {
+	      try { return JSON.parse(match[0]); } catch(e2){}
+	    }
+	    return null;
+	  }
+	}
 
 // Map type -> element IDs (exact HTML IDs)
 var AI_MAP = {
