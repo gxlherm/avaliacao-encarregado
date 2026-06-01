@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Avaliação de Encarregado</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<style>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+	<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+	<style>
 :root {
   --bg: #F4F5F7;
   --white: #FFFFFF;
@@ -501,10 +503,12 @@ body {
         <button onclick="clearOcrImages()" style="margin-top: 8px; background: none; border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: var(--muted); cursor: pointer;">🗑 Limpar imagens</button>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button class="btn" id="btnCamera" style="flex: 1; background: #1A56DB; color: white; padding: 12px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer;" onclick="openCameraCapture()">📷 Tirar Foto</button>
-        <button class="btn" id="btnGallery" style="flex: 1; background: #6B7280; color: white; padding: 12px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer;" onclick="openGalleryUpload()">📁 Galeria</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+        <button class="btn" id="btnCamera" style="background: #1A56DB; color: white; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer;" onclick="openCameraCapture()">📷 Foto</button>
+        <button class="btn" id="btnGallery" style="background: #6B7280; color: white; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer;" onclick="openGalleryUpload()">🖼️ Galeria</button>
+        <button class="btn" id="btnPdf" style="background: #475569; color: white; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer;" onclick="document.getElementById('pdfInput').click()">📄 PDF</button>
       </div>
+      <input type="file" id="pdfInput" accept="application/pdf" style="display: none;" onchange="handlePdfSelect(event)">
       <button id="btnProcessOcr" onclick="processOcrImages()" style="display:none; width: 100%; background: #0D7A5F; color: white; padding: 12px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 4px;">✨ Processar com IA</button>
 
       <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" onchange="handleImageSelect(event)">
@@ -837,8 +841,35 @@ function refreshAllUI() {
   updateRatingCount('comp'); updateRatingCount('perf');
 }
 
+// ─── AUTO-SAVE DRAFT ───
+function saveDraft() {
+  if (editId) return; 
+  var data = collectData();
+  localStorage.setItem('avaliacao_draft', JSON.stringify(data));
+}
+function loadDraft() {
+  var draft = localStorage.getItem('avaliacao_draft');
+  if (draft) {
+    try {
+      var av = JSON.parse(draft);
+      loadIntoForm(av);
+      showToast('Rascunho recuperado automaticamente');
+    } catch(e){}
+  }
+}
+function clearDraft() {
+  localStorage.removeItem('avaliacao_draft');
+}
+
 // ─── START NEW ───
 function startNew() {
+  if (!editId && localStorage.getItem('avaliacao_draft')) {
+    if (confirm('Você tem um rascunho não salvo. Deseja descartá-lo e começar uma nova avaliação?')) {
+      clearDraft();
+    } else {
+      return;
+    }
+  }
   editId = null;
   scores = {}; diagSel = null; nsSel = new Set();
   document.getElementById('f_nome').value='';
@@ -1017,20 +1048,21 @@ function collectData(){
 }
 
 // ─── SAVE AND PDF ───
-function saveAndPDF(){
-  var av=collectData();
-  var list=loadHistory();
-  if(editId){
-    var idx=list.findIndex(function(a){return a.id===editId;});
-    if(idx>=0) list[idx]=av; else list.push(av);
-  }else{
-    list.push(av);
-  }
-  saveHistory(list);
-  showToast(editId?'Avaliação atualizada':'Avaliação salva');
-  document.getElementById('overlay').classList.add('show');
-  setTimeout(function(){_doPDF(av);},150);
-}
+	function saveAndPDF(){
+	  var av=collectData();
+	  var list=loadHistory();
+	  if(editId){
+	    var idx=list.findIndex(function(a){return a.id===editId;});
+	    if(idx>=0) list[idx]=av; else list.push(av);
+	  }else{
+	    list.push(av);
+	    clearDraft(); // Limpar rascunho após salvar nova avaliação
+	  }
+	  saveHistory(list);
+	  showToast(editId?'Avaliação atualizada':'Avaliação salva');
+	  document.getElementById('overlay').classList.add('show');
+	  setTimeout(function(){_doPDF(av);},150);
+	}
 
 // ─── SUMMARY ───
 function buildSummary(){
@@ -1391,16 +1423,16 @@ var AI_MAP = {
 
 var AI_PROMPTS = {
   fortes: {
-    sys: 'Você é um supervisor de loja. Dê 3 elogios simples e diretos sobre o que o colaborador faz bem no FLV. Fale de banca bonita, rapidez na reposição e cuidado com os produtos. Sem "corporativismo". RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}',
-    user: function(ctx){ return 'Dê 3 exemplos práticos de pontos fortes baseados nestas notas:\n\n' + ctx; }
+    sys: 'Você é um Consultor de Alta Performance em Varejo. Analise as notas de competência e forneça 3 observações analíticas e elogiosas sobre o desempenho do colaborador. Utilize uma linguagem executiva, porém acessível, destacando liderança, eficiência operacional e excelência no atendimento. Foque em resultados tangíveis e impacto positivo na equipe. RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}',
+    user: function(ctx){ return 'Gere 3 observações analíticas de pontos fortes baseadas nestas métricas de desempenho:\n\n' + ctx; }
   },
   melhoria: {
-    sys: 'Você é um encarregado experiente dando um conselho. Dê 3 toques práticos para o colaborador melhorar no FLV. Fale de atenção com a quebra, organização do depósito ou pressa na medida certa. Linguagem de chão de loja. RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}',
-    user: function(ctx){ return 'Dê 3 conselhos práticos de melhoria baseados nestas notas:\n\n' + ctx; }
+    sys: 'Você é um Especialista em Desenvolvimento Humano. Com base nas notas baixas ou medianas, sugira 3 planos de ação estratégicos para o aprimoramento profissional. A linguagem deve ser motivadora e orientada a metas, focando em produtividade, redução de perdas e inteligência emocional. RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}',
+    user: function(ctx){ return 'Gere 3 recomendações estratégicas de melhoria baseadas nestas métricas:\n\n' + ctx; }
   },
   obs: {
-    sys: 'Você é um gerente de loja. Dê 3 sugestões de próximos passos bem realistas e pé no chão para o crescimento deste colaborador. RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}',
-    user: function(ctx){ return 'Dê 3 sugestões práticas de próximos passos:\n\n' + ctx; }
+    sys: 'Você é um Diretor de Operações de Varejo. Projete 3 diretrizes de carreira e próximos passos estratégicos para o desenvolvimento deste talento na organização. As sugestões devem ser ambiciosas, estruturadas e focadas em preparar o colaborador para maiores responsabilidades. RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}',
+    user: function(ctx){ return 'Projete 3 diretrizes de desenvolvimento e próximos passos estratégicos:\n\n' + ctx; }
   }
 };
 
@@ -1709,6 +1741,46 @@ function clearOcrImages() {
   statusEl.style.display = 'none';
 }
 
+async function handlePdfSelect(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+
+  var statusEl = document.getElementById('ocrStatus');
+  var btnPdf = document.getElementById('btnPdf');
+  
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Lendo PDF...';
+  statusEl.style.color = '#1A56DB';
+  btnPdf.disabled = true;
+
+  try {
+    var arrayBuffer = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    var numPages = Math.min(pdf.numPages, 4);
+    
+    ocrImages = [];
+    for (var i = 1; i <= numPages; i++) {
+      statusEl.textContent = 'Processando página ' + i + ' de ' + numPages + '...';
+      var page = await pdf.getPage(i);
+      var viewport = page.getViewport({ scale: 2.0 });
+      var canvas = document.createElement('canvas');
+      var context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      await page.render({ canvasContext: context, viewport: viewport }).promise;
+      ocrImages.push(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    }
+    updateOcrPreview();
+    statusEl.textContent = ocrImages.length + ' página(s) carregada(s).';
+  } catch (e) {
+    console.error(e);
+    showToast('Erro ao ler PDF');
+    statusEl.style.display = 'none';
+  } finally {
+    btnPdf.disabled = false;
+  }
+}
+
 async function processOcrImages() {
   if (ocrImages.length === 0) {
     showToast('Selecione ao menos uma imagem.');
@@ -1869,6 +1941,15 @@ function fillFormWithOCRData(data) {
   buildDiag(); buildNS();
   document.getElementById('f_data').value=new Date().toISOString().split('T')[0];
   renderHistory();
+
+  // Listeners para auto-save
+  setTimeout(function(){
+    document.querySelectorAll('input, textarea, select').forEach(function(el){
+      el.addEventListener('input', saveDraft);
+      el.addEventListener('change', saveDraft);
+    });
+    if (!editId) loadDraft();
+  }, 500);
 })();
 </script>
 </body>

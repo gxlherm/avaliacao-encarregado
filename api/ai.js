@@ -45,11 +45,18 @@ export default async function handler(req, res) {
     let finalUser = userMsg;
 
     if (mode === 'refine') {
-      finalSystem = `Você é um supervisor de loja experiente. Seu objetivo é refinar o texto de uma evidência de avaliação para torná-lo mais profissional, claro e direto, mantendo o sentido original. Use linguagem de chão de loja, mas bem escrita. O colaborador se chama ${context.nome} e a nota atribuída foi ${context.nota}.`;
-      finalUser = `Refine este texto de evidência: "${userMsg}"`;
+      finalSystem = `Você é um Especialista em Comunicação Corporativa e Gestão de Pessoas. Sua missão é elevar o teor de uma evidência de avaliação de desempenho, transformando observações informais em registros profissionais, analíticos e de alto impacto. 
+      O texto deve ser:
+      1. Objetivo e baseado em fatos.
+      2. Utilizar verbos de ação (ex: "Demonstrou", "Otimizou", "Assegurou").
+      3. Adequado ao contexto de varejo/FLV.
+      O colaborador avaliado é ${context.nome} e a nota atribuída é ${context.nota}. 
+      Mantenha o tom construtivo para notas baixas e meritocrático para notas altas.`;
+      finalUser = `Transforme esta observação em um registro profissional de alta qualidade: "${userMsg}"`;
     } else if (mode === 'suggest') {
-      finalSystem = `Você é um supervisor de loja. Dê 3 sugestões curtas e práticas de evidências para o critério "${userMsg}" baseadas na nota ${context.nota} para o colaborador ${context.nome}. RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}`;
-      finalUser = `Sugira 3 evidências curtas para a nota ${context.nota}.`;
+      finalSystem = `Você é um Consultor de Gestão por Competências. Com base no critério "${userMsg}" e na nota ${context.nota} atribuída ao colaborador ${context.nome}, forneça 3 exemplos de evidências comportamentais e técnicas que justifiquem essa pontuação de forma profissional e detalhada.
+      RETORNE APENAS JSON: {"sugestoes":["...","...","..."]}`;
+      finalUser = `Gere 3 evidências analíticas para a nota ${context.nota} no critério "${userMsg}".`;
     }
 
     const messages = [
